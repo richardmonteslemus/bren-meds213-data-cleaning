@@ -50,6 +50,8 @@ Let's focus on the non-numeric values as a starting point:
 
 ```{r}
 snowsurvey_csv %>%
+  count(Snow_cover) %>% 
+  filter(is.na(as.numeric(Snow_cover)))
 
 ```
 
@@ -67,66 +69,54 @@ snowsurvey_csv %>%
 
 Interestingly, when there is a "dot" for snow cover, it is also the case for all the other covers. Let's replace those with NA since there is no supplemental information in the provided metadata about the use of dots
 
-```{r}
-snowsurvey_fixed <- 
-```
-
 #### `-` values
 
 Is he problem is similar with "-"?
 
-```{r}
-snowsurvey_csv 
-```
-
-
-let's set it to NA:
 
 ```{r}
-snowsurvey_fixed <- 
+snowsurvey_fixed <- snowsurvey_csv %>% 
+  mutate(Snow_cover = ifelse(Snow_cover == ".", NA, Snow_cover)) %>% 
+  mutate(Snow_cover = ifelse(Snow_cover == "-", NA, Snow_cover))
 ```
 
 #### `n/a` values
 
 "n/a" seems pretty clear regarding how to fix it, but let's have a look first:
 
-```{r}
-snowsurvey_csv %>%
-  
-```
-
-
 Same pattern, let's substitute with NA:
 
-```{r}
-snowsurvey_fixed <- 
- 
-```
 
 #### `unk` values
 
 What about "unk"? It is probably an abbreviation for unknown:
 
-```{r}
-snowsurvey_csv %>%
-  
-```
-
 
 ```{r}
-snowsurvey_fixed <- 
+snowsurvey_fixed <- snowsurvey_fixed %>% 
+  mutate(Snow_cover = ifelse(Snow_cover == "n/a", NA, Snow_cover)) %>% 
+  mutate(Snow_cover = ifelse(Snow_cover == "unk", NA, Snow_cover))
+
 ```
+
+```{r}
+snowsurvey_fixed %>% 
+  count(Snow_cover)
+```
+
 
 #### `<1` values
 
 Finally What should we replace"<1" with?
 
 ```{r}
-
+snowsurvey_fixed <- snowsurvey_fixed %>% 
+  mutate(Snow_cover = ifelse(Snow_cover == "<1", 0, Snow_cover)) 
 ```
 
 ```{r}
-
+snowsurvey_fixed %>% 
+  count(Snow_cover)
 ```
 
 
@@ -143,30 +133,38 @@ snowsurvey_fixed %>%
 Ok, we can do the transformation:
 
 ```{r}
-snowsurvey_fixed <- 
+snowsurvey_fixed <- snowsurvey_fixed %>% 
+  mutate(Snow_cover = as.numeric(Snow_cover))
 ```
 
 Yeah we have finally a numeric column 🎉. 
 
+
+```{r}
+snowsurvey_fixed %>% glimpse()
+```
 
 ### Further cleaning
 
 We are dealing with percentages, so we should verify that all the values are between 0 and 100:
 
 ```{r}
- snowsurvey_fixed 
+ snowsurvey_fixed %>% 
+  filter(Snow_cover > 100) %>% 
+  
 ```
 
 We have two values above 100, with an interesting 470%! ☃️ We should probably set those values to NAs:
 
 ```{r}
-snowsurvey_fixed <- 
+snowsurvey_fixed <- snowsurvey_fixed %>% 
+  mutate(Snow_cover = ifelse(Snow_cover > 100, NA, Snow_cover)) 
 ```
 
 Let's check for negative values:
 
 ```{r}
- snowsurvey_fixed %>%
+ snowsurvey_fixed %>% filter(Snow_cover < 0)
   
 ```
 
@@ -213,7 +211,19 @@ This data model is not convenient for a database, we will have to switch to a lo
 ### Data cleaning
 
 ```{r}
-species_long <- 
+species_long <- species_csv %>% 
+  select(-c(Jdate, Num_observers, All_obs_reported, Observer_hours)) %>% 
+  pivot_longer(
+    cols = !c(Year, Site, Date),
+               names_to = "Species",
+               values_to = "Presence",
+               values_transform = list(Presence = as.character))
+```
+
+```{r}
+species_long %>% glimpse()
+
+unique(species_long$Presence)
 ```
 
 
@@ -221,6 +231,7 @@ We want to focus on the presence and absence of species and not the count. Let's
 
 ```{r}
 species_presence <- species_long %>%
+  mutate(Presence = ifelse(Presence == 0, 0, 1))
   
 ```
 
