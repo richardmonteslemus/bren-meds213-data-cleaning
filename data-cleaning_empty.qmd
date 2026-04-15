@@ -150,8 +150,7 @@ We are dealing with percentages, so we should verify that all the values are bet
 
 ```{r}
  snowsurvey_fixed %>% 
-  filter(Snow_cover > 100) %>% 
-  
+  filter(Snow_cover > 100) 
 ```
 
 We have two values above 100, with an interesting 470%! ☃️ We should probably set those values to NAs:
@@ -237,18 +236,15 @@ species_presence <- species_long %>%
 
 We can remove some columns: "Num_observers", "All_obs_reported", "Observer_hours" are here to help to compute the effort of observation but since we just want presence and absence, we do not need it. We can also remove all the zeros values to reduce the size of our data set:
 
-```{r}
-species_presence <- species_presence %>%
-  
-
-```
 
 Last but not least, let's have a look at our species list
 
+
+
 ```{r}
 species_presence %>%
-  filter(species_presence == 1) %>%
-  count(species) %>%
+  filter(Presence == 1) %>%
+  count(Species) %>%
   arrange(desc(n))
 ```
 

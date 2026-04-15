@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.25">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Data Cleaning</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="data-cleaning_empty_files/libs/clipboard/clipboard.min.js"></script>
+<script src="data-cleaning_empty_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="data-cleaning_empty_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="data-cleaning_empty_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="data-cleaning_empty_files/libs/quarto-html/popper.min.js"></script>
+<script src="data-cleaning_empty_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="data-cleaning_empty_files/libs/quarto-html/anchor.min.js"></script>
+<link href="data-cleaning_empty_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="data-cleaning_empty_files/libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="data-cleaning_empty_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="data-cleaning_empty_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="data-cleaning_empty_files/libs/bootstrap/bootstrap-d6a003b94517c951b2d65075d42fb01b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Data Cleaning</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Libraries</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># file names</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>datadir_raw <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="st">"data"</span>,<span class="st">"raw"</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>datadir_processed <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="st">"data"</span>, <span class="st">"processed/"</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>species_file <span class="ot">&lt;-</span> <span class="st">"ASDN_Daily_species.csv"</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>snowsurvey_file <span class="ot">&lt;-</span> <span class="st">"ASDN_Snow_survey.csv"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="snow-survey-data" class="level2">
+<h2 class="anchored" data-anchor-id="snow-survey-data">Snow survey data</h2>
+<div class="callout callout-style-default callout-note callout-titled" title="Our task and you have to accept it :)">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Our task and you have to accept it :)
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Our goal is to clean the <code>Snow_cover</code> column so it is ready to ingest in our database. Your mission is to find out potential problems and fix them!</p>
+</div>
+</div>
+<section id="data-exploration" class="level3">
+<h3 class="anchored" data-anchor-id="data-exploration">Data Exploration</h3>
+<p>Import the snow survey</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Import the species</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>snowsurvey_csv <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">file.path</span>(datadir_raw, snowsurvey_file))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 42830 Columns: 11
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (10): Site, Date, Plot, Location, Snow_cover, Water_cover, Land_cover, T...
+dbl  (1): Year
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(snowsurvey_csv)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 42,830
+Columns: 11
+$ Site        &lt;chr&gt; "barr", "barr", "barr", "barr", "barr", "barr", "barr", "b…
+$ Year        &lt;dbl&gt; 2011, 2011, 2011, 2011, 2011, 2011, 2011, 2011, 2011, 2011…
+$ Date        &lt;chr&gt; "29-May-11", "29-May-11", "29-May-11", "29-May-11", "29-Ma…
+$ Plot        &lt;chr&gt; "brw1", "brw1", "brw1", "brw1", "brw1", "brw1", "brw1", "b…
+$ Location    &lt;chr&gt; "b10", "b12", "b2", "b4", "b6", "b8", "d10", "d12", "d2", …
+$ Snow_cover  &lt;chr&gt; "90", "100", "90", "100", "95", "95", "95", "90", "95", "9…
+$ Water_cover &lt;chr&gt; "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "10", "0…
+$ Land_cover  &lt;chr&gt; "10", "0", "10", "0", "5", "5", "5", "10", "5", "5", "0", …
+$ Total_cover &lt;chr&gt; "100", "100", "100", "100", "100", "100", "100", "100", "1…
+$ Observer    &lt;chr&gt; "adoll", "adoll", "adoll", "adoll", "adoll", "adoll", "ado…
+$ Notes       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…</code></pre>
+</div>
+</div>
+<p>Ok, the types are not what we were expecting for the percentages of cover. Let’s find out why:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_csv <span class="sc">%&gt;%</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(Snow_cover)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 62 × 2
+   Snow_cover     n
+   &lt;chr&gt;      &lt;int&gt;
+ 1 -             10
+ 2 .            568
+ 3 0          24823
+ 4 1             15
+ 5 1.25           1
+ 6 1.65           1
+ 7 10          2106
+ 8 10.45          1
+ 9 100         3086
+10 15           538
+# ℹ 52 more rows</code></pre>
+</div>
+</div>
+<p>Let’s focus on the non-numeric values as a starting point:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_csv <span class="sc">%&gt;%</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(Snow_cover) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">is.na</span>(<span class="fu">as.numeric</span>(Snow_cover)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There was 1 warning in `filter()`.
+ℹ In argument: `is.na(as.numeric(Snow_cover))`.
+Caused by warning:
+! NAs introduced by coercion</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 2
+  Snow_cover     n
+  &lt;chr&gt;      &lt;int&gt;
+1 -             10
+2 .            568
+3 &lt;1             1
+4 n/a            3
+5 unk            1
+6 &lt;NA&gt;         214</code></pre>
+</div>
+</div>
+</section>
+<section id="data-cleaning" class="level3">
+<h3 class="anchored" data-anchor-id="data-cleaning">Data cleaning</h3>
+<p>Ok, we found our problematic values that are not numeric. There are a non-negligible number of cells with a dot as value. There is no mention of using this symbol in the metadata. We should probably have a look at those rows.</p>
+<section id="values" class="level4">
+<h4 class="anchored" data-anchor-id="values"><code>.</code> values</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_csv <span class="sc">%&gt;%</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Snow_cover <span class="sc">==</span> <span class="st">"."</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">View</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Interestingly, when there is a “dot” for snow cover, it is also the case for all the other covers. Let’s replace those with NA since there is no supplemental information in the provided metadata about the use of dots</p>
+</section>
+<section id="values-1" class="level4">
+<h4 class="anchored" data-anchor-id="values-1"><code>-</code> values</h4>
+<p>Is he problem is similar with “-”?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_fixed <span class="ot">&lt;-</span> snowsurvey_csv <span class="sc">%&gt;%</span> </span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Snow_cover =</span> <span class="fu">ifelse</span>(Snow_cover <span class="sc">==</span> <span class="st">"."</span>, <span class="cn">NA</span>, Snow_cover)) <span class="sc">%&gt;%</span> </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Snow_cover =</span> <span class="fu">ifelse</span>(Snow_cover <span class="sc">==</span> <span class="st">"-"</span>, <span class="cn">NA</span>, Snow_cover))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="na-values" class="level4">
+<h4 class="anchored" data-anchor-id="na-values"><code>n/a</code> values</h4>
+<p>“n/a” seems pretty clear regarding how to fix it, but let’s have a look first:</p>
+<p>Same pattern, let’s substitute with NA:</p>
+</section>
+<section id="unk-values" class="level4">
+<h4 class="anchored" data-anchor-id="unk-values"><code>unk</code> values</h4>
+<p>What about “unk”? It is probably an abbreviation for unknown:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_fixed <span class="ot">&lt;-</span> snowsurvey_fixed <span class="sc">%&gt;%</span> </span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Snow_cover =</span> <span class="fu">ifelse</span>(Snow_cover <span class="sc">==</span> <span class="st">"n/a"</span>, <span class="cn">NA</span>, Snow_cover)) <span class="sc">%&gt;%</span> </span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Snow_cover =</span> <span class="fu">ifelse</span>(Snow_cover <span class="sc">==</span> <span class="st">"unk"</span>, <span class="cn">NA</span>, Snow_cover))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_fixed <span class="sc">%&gt;%</span> </span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(Snow_cover)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 58 × 2
+   Snow_cover     n
+   &lt;chr&gt;      &lt;int&gt;
+ 1 0          24823
+ 2 1             15
+ 3 1.25           1
+ 4 1.65           1
+ 5 10          2106
+ 6 10.45          1
+ 7 100         3086
+ 8 15           538
+ 9 16.4           1
+10 17             1
+# ℹ 48 more rows</code></pre>
+</div>
+</div>
+</section>
+<section id="values-2" class="level4">
+<h4 class="anchored" data-anchor-id="values-2"><code>&lt;1</code> values</h4>
+<p>Finally What should we replace”&lt;1” with?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_fixed <span class="ot">&lt;-</span> snowsurvey_fixed <span class="sc">%&gt;%</span> </span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Snow_cover =</span> <span class="fu">ifelse</span>(Snow_cover <span class="sc">==</span> <span class="st">"&lt;1"</span>, <span class="dv">0</span>, Snow_cover)) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_fixed <span class="sc">%&gt;%</span> </span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(Snow_cover)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 57 × 2
+   Snow_cover     n
+   &lt;chr&gt;      &lt;int&gt;
+ 1 0          24824
+ 2 1             15
+ 3 1.25           1
+ 4 1.65           1
+ 5 10          2106
+ 6 10.45          1
+ 7 100         3086
+ 8 15           538
+ 9 16.4           1
+10 17             1
+# ℹ 47 more rows</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="going-numeric" class="level3">
+<h3 class="anchored" data-anchor-id="going-numeric">Going numeric</h3>
+<p>Now we can test if we now only have NAs as non numeric values in the column:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_fixed <span class="sc">%&gt;%</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(Snow_cover) <span class="sc">%&gt;%</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">is.na</span>(<span class="fu">as.numeric</span>(Snow_cover)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 2
+  Snow_cover     n
+  &lt;chr&gt;      &lt;int&gt;
+1 &lt;NA&gt;         796</code></pre>
+</div>
+</div>
+<p>Ok, we can do the transformation:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_fixed <span class="ot">&lt;-</span> snowsurvey_fixed <span class="sc">%&gt;%</span> </span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Snow_cover =</span> <span class="fu">as.numeric</span>(Snow_cover))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Yeah we have finally a numeric column 🎉.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_fixed <span class="sc">%&gt;%</span> <span class="fu">glimpse</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 42,830
+Columns: 11
+$ Site        &lt;chr&gt; "barr", "barr", "barr", "barr", "barr", "barr", "barr", "b…
+$ Year        &lt;dbl&gt; 2011, 2011, 2011, 2011, 2011, 2011, 2011, 2011, 2011, 2011…
+$ Date        &lt;chr&gt; "29-May-11", "29-May-11", "29-May-11", "29-May-11", "29-Ma…
+$ Plot        &lt;chr&gt; "brw1", "brw1", "brw1", "brw1", "brw1", "brw1", "brw1", "b…
+$ Location    &lt;chr&gt; "b10", "b12", "b2", "b4", "b6", "b8", "d10", "d12", "d2", …
+$ Snow_cover  &lt;dbl&gt; 90, 100, 90, 100, 95, 95, 95, 90, 95, 95, 90, 90, 95, 90, …
+$ Water_cover &lt;chr&gt; "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "10", "0…
+$ Land_cover  &lt;chr&gt; "10", "0", "10", "0", "5", "5", "5", "10", "5", "5", "0", …
+$ Total_cover &lt;chr&gt; "100", "100", "100", "100", "100", "100", "100", "100", "1…
+$ Observer    &lt;chr&gt; "adoll", "adoll", "adoll", "adoll", "adoll", "adoll", "ado…
+$ Notes       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…</code></pre>
+</div>
+</div>
+</section>
+<section id="further-cleaning" class="level3">
+<h3 class="anchored" data-anchor-id="further-cleaning">Further cleaning</h3>
+<p>We are dealing with percentages, so we should verify that all the values are between 0 and 100:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a> snowsurvey_fixed <span class="sc">%&gt;%</span> </span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Snow_cover <span class="sc">&gt;</span> <span class="dv">100</span>) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 11
+  Site   Year Date  Plot  Location Snow_cover Water_cover Land_cover Total_cover
+  &lt;chr&gt; &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;         &lt;dbl&gt; &lt;chr&gt;       &lt;chr&gt;      &lt;chr&gt;      
+1 barr   2011 31-M… brw3  d10             200 0           -100       100        
+2 barr   2007 5-Ju… brw1  j6              470 0           0          470        
+# ℹ 2 more variables: Observer &lt;chr&gt;, Notes &lt;chr&gt;</code></pre>
+</div>
+</div>
+<p>We have two values above 100, with an interesting 470%! ☃️ We should probably set those values to NAs:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>snowsurvey_fixed <span class="ot">&lt;-</span> snowsurvey_fixed <span class="sc">%&gt;%</span> </span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Snow_cover =</span> <span class="fu">ifelse</span>(Snow_cover <span class="sc">&gt;</span> <span class="dv">100</span>, <span class="cn">NA</span>, Snow_cover)) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Let’s check for negative values:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a> snowsurvey_fixed <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Snow_cover <span class="sc">&lt;</span> <span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 0 × 11
+# ℹ 11 variables: Site &lt;chr&gt;, Year &lt;dbl&gt;, Date &lt;chr&gt;, Plot &lt;chr&gt;,
+#   Location &lt;chr&gt;, Snow_cover &lt;dbl&gt;, Water_cover &lt;chr&gt;, Land_cover &lt;chr&gt;,
+#   Total_cover &lt;chr&gt;, Observer &lt;chr&gt;, Notes &lt;chr&gt;</code></pre>
+</div>
+</div>
+<p>No negative value detected ✅</p>
+<p>Let’s write the presence table to a csv file:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># check if the folder exists</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(datadir_processed, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co"># write the file</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(snowsurvey_fixed, <span class="fu">file.path</span>(datadir_processed, <span class="st">"snow_cover.csv"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<hr>
+</section>
+</section>
+<section id="species-data" class="level2">
+<h2 class="anchored" data-anchor-id="species-data">Species data</h2>
+<div class="callout callout-style-default callout-note callout-titled" title="Our task and you have to accept it :)">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Our task and you have to accept it :)
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Our goal is to reformat the species data so it is ready to ingest in our database. Your mission is to find out potential problems and fix them!</p>
+</div>
+</div>
+<section id="data-exploration-1" class="level3">
+<h3 class="anchored" data-anchor-id="data-exploration-1">Data exploration</h3>
+<p>Import the species csv files with the bird species information:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>species_csv <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">file.path</span>(datadir_raw, species_file))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: One or more parsing issues, call `problems()` on your data frame for details,
+e.g.:
+  dat &lt;- vroom(...)
+  problems(dat)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 3367 Columns: 357
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (125): Site, Date, All_obs_reported, Aleutian_Tern, American_Bittern, Am...
+dbl (232): Year, Jdate, Num_observers, Observer_hours, Alder_Flycatcher, Ame...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(species_csv)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 3,367
+Columns: 357
+$ Year                                   &lt;dbl&gt; 2003, 2003, 2003, 2003, 2003, 2…
+$ Site                                   &lt;chr&gt; "barr", "barr", "barr", "barr",…
+$ Date                                   &lt;chr&gt; "1-Jun-03", "2-Jun-03", "3-Jun-…
+$ Jdate                                  &lt;dbl&gt; 152, 153, 154, 155, 156, 157, 1…
+$ Num_observers                          &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA,…
+$ All_obs_reported                       &lt;chr&gt; "y", "y", "y", "y", "y", "y", "…
+$ Observer_hours                         &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA,…
+$ Alder_Flycatcher                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Aleutian_Tern                          &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ American_Bittern                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ American_Black_Duck                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ American_Black_Duck_x_Mallard_.hybrid. &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ American_Coot                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ American_Crow                          &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ American_Golden_Plover                 &lt;chr&gt; "0", "0", "0", "0", "X", "0", "…
+$ American_Kestrel                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ American_Pipit                         &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ American_Redstart                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ American_Robin                         &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ American_Tree_Sparrow                  &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ American_Wigeon                        &lt;chr&gt; "0", "0", "0", "0", "0", "X", "…
+$ Arctic_Fox                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Arctic_Ground_Squirrel                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Arctic_Hare                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Arctic_Loon                            &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Arctic_Shrew                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Arctic_Tern                            &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Arctic_Warbler                         &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Baikal_Teal                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Bairds_Sandpiper                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Bald_Eagle                             &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Bank_Swallow                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Barn_Swallow                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Barrows_Goldeneye                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Bar_tailed_Godwit                      &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Bean_Goose                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Bearded_Seal                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Beaver                                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Belted_Kingfisher                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Beluga                                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Bewicks_Swan                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Black_Bear                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Black_Guillemot                        &lt;chr&gt; "0", "0", "X", "0", "0", "0", "…
+$ Black_Scoter                           &lt;chr&gt; "0", "0", "0", "X", "0", "0", "…
+$ Black_Tern                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Black_Turnstone                        &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Black_and_white_Warbler                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Black_bellied_Plover                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Black_billed_Magpie                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Black_headed_Gull                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Black_legged_Kittiwake                 &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Blackpoll_Warbler                      &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Bluethroat                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Blue_winged_Teal                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Bobolink                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Bohemian_Waxwing                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Bonapartes_Gull                        &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Boreal_Chickadee                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Boreal_Owl                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Bowhead_Whale                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Brambling                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Brant                                  &lt;chr&gt; "0", "0", "0", "0", "0", "X", "…
+$ Brewers_Blackbird                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Bristle_thighed_Curlew                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Brown_Bear                             &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Brown_Creeper                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Brown_Lemming                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Brown_Thrasher                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Brown_headed_Cowbird                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Buff_breasted_Sandpiper                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Bufflehead                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Cackling_Goose                         &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Canada_Goose                           &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Canada_Warbler                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Canada_Cackling_Goose                  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Canvasback                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Caribou                                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Caspian_Tern                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Cedar_Waxwing                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Chipping_Sparrow                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Cliff_Swallow                          &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Common_Eider                           &lt;chr&gt; "0", "X", "X", "0", "0", "0", "…
+$ Common_Goldeneye                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Common_Grackle                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Common_House_Martin                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Common_Loon                            &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Common_Merganser                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Common_Murre                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Common_Raven                           &lt;chr&gt; "0", "X", "0", "X", "X", "0", "…
+$ Common_Redpoll                         &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Common_Snipe                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Common_Tern                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Common_Yellowthroat                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Curlew_Sandpiper                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Dark_eyed_Junco                        &lt;chr&gt; "0", "0", "0", "0", "0", "X", "…
+$ Double_crested_Cormorant               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Dovekie                                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Duck_sp                                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Dunlin                                 &lt;chr&gt; "0", "X", "X", "X", "X", "0", "…
+$ Dusky_Thrush                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Eastern_Kingbird                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Eastern_Yellow_Wagtail                 &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Eider_sp                               &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Emperor_Goose                          &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Ermine                                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Eskimo_Curlew                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Eurasian_Dotterel                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Eurasian_Green_winged_Teal             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Eurasian_Wigeon                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ European_Starling                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Eyebrowed_Thrush                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Falcon_sp                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Falcated_Duck                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Fieldfare                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ FINCH_SP                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Fox_sp                                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Fox_Sparrow                            &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Gadwall                                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Garganey                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Glaucous_Gull                          &lt;chr&gt; "0", "X", "X", "X", "X", "X", "…
+$ Glaucous_winged_Gull                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Godwit_sp                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Golden_Eagle                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Golden_crowned_Kinglet                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Golden_crowned_Sparrow                 &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Golden_Plover_sp                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Goldeneye_Sp                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Goose_sp                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Gray_Jay                               &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Gray_Whale                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Gray_Wolf                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Gray_cheeked_Thrush                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Gray_crowned_Rosy_Finch                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Gray_tailed_Tattler                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Great_Black_backed_Gull                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Great_Blue_Heron                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Great_Gray_Owl                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Great_Horned_Owl                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Great_Knot                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Greater_Scaup                          &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Greater_White_fronted_Goose            &lt;chr&gt; "0", "X", "X", "X", "X", "X", "…
+$ Greater_Yellowlegs                     &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Collared_Lemming                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Green_winged_Teal                      &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Guillemot_sp                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Gull_hybrid                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Gull_sp                                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Gyrfalcon                              &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Hairy_Woodpecker                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Harlequin_Duck                         &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Harriss_Sparrow                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Hermit_Thrush                          &lt;chr&gt; "X", "0", "0", "0", "0", "0", "…
+$ Herring_Gull                           &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Hoary_Redpoll                          &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Hooded_Merganser                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Horned_Grebe                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Horned_Lark                            &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Horned_Puffin                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, NA, 0, …
+$ House_Sparrow                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Hudsonian_Godwit                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Iceland_Gull                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Ivory_Gull                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Jaeger_sp                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Killdeer                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ King_Eider                             &lt;chr&gt; "0", "0", "0", "X", "X", "X", "…
+$ Kittlitzs_Murrelet                     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Lapland_Longspur                       &lt;chr&gt; "0", "X", "X", "X", "X", "X", "…
+$ Le_Contes_Sparrow                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Least_Sandpiper                        &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Least_Weasel                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Lemming_sp.                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Lesser_Scaup                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Lesser_White_fronted_Goose             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Lesser_Yellowlegs                      &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Lincolns_Sparrow                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Little_Bunting                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Little_Gull                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Little_Stint                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Long_billed_Dowitcher                  &lt;chr&gt; "0", "X", "0", "0", "X", "X", "…
+$ Long_tailed_Duck                       &lt;chr&gt; "0", "X", "X", "X", "X", "X", "…
+$ Long_tailed_Jaeger                     &lt;chr&gt; "0", "0", "0", "0", "0", "X", "…
+$ Long_tailed_Weasel                     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Loon_sp.                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Mallard                                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Marbled_Godwit                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Meadow_Vole                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Merlin                                 &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Mew_Gull                               &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Microtine_sp.                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Mongolian_Plover                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Moose                                  &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Mosquitos                              &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Mountain_Bluebird                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Mourning_Dove                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Murre_sp.                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Muskox                                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Muskrat                                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Nelsons_Sparrow                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Northern_Flicker                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Northern_Fulmar                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Northern_Goshawk                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Northern_Harrier                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Northern_Hawk_Owl                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Northern_Mockingbird                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Northern_Pintail                       &lt;chr&gt; "0", "X", "X", "X", "X", "X", "…
+$ Northern_Shoveler                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Northern_Shrike                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Northern_Waterthrush                   &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Northern_Wheatear                      &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Olive_sided_Flycatcher                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Orange_crowned_Warbler                 &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Osprey                                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Ovenbird                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Pacific_Golden_Plover                  &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Pacific_Loon                           &lt;chr&gt; "0", "0", "X", "X", "0", "X", "…
+$ Pacific.Arctic_Loon                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Palm_Warbler                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Parasitic_Jaeger                       &lt;chr&gt; "0", "X", "X", "X", "0", "0", "…
+$ Pectoral_Sandpiper                     &lt;chr&gt; "0", "X", "X", "X", "X", "X", "…
+$ Peep_sp.                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Pelagic_Cormorant                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Peregrine_Falcon                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Phalarope_sp.                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Pied_billed_Grebe                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Pine_Grosbeak                          &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Pine_Siskin                            &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Pintail_Snipe                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Polar_Bear                             &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Pomarine_Jaeger                        &lt;chr&gt; "0", "X", "X", "X", "X", "X", "…
+$ Purple_Finch                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Purple_Sandpiper                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Raptor_sp.                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Red_Crossbill                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Red_Fox                                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Red_Knot                               &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Red_Phalarope                          &lt;chr&gt; "0", "X", "X", "X", "X", "X", "…
+$ Northern_Red_backed_Vole               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Red_breasted_Merganser                 &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Red_faced_Cormorant                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Redhead                                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Red_necked_Grebe                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Red_necked_Phalarope                   &lt;chr&gt; "0", "X", "0", "X", "X", "X", "…
+$ Red_necked_Stint                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Redpoll_sp.                            &lt;chr&gt; "0", "X", "X", "X", "X", "X", "…
+$ Red_tailed_Hawk                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Red_throated_Loon                      &lt;chr&gt; "0", "0", "X", "0", "0", "0", "…
+$ Red_throated_Pipit                     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Red_winged_Blackbird                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Ring_billed_Gull                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Ringed_Plover                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Ringed_Seal                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Ring_necked_Duck                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ River_Otter                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Rock_Pigeon                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Rock_Ptarmigan                         &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Rock_Sandpiper                         &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Rodent_sp.                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Rosss_Goose                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Rosss_Gull                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Rough_legged_Hawk                      &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Ruby_crowned_Kinglet                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Ruddy_Turnstone                        &lt;chr&gt; "0", "0", "0", "0", "0", "X", "…
+$ Ruff                                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Rusty_Blackbird                        &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Sabines_Gull                           &lt;chr&gt; "0", "0", "X", "0", "0", "0", "…
+$ Sanderling                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Sandhill_Crane                         &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Savannah_Sparrow                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Says_Phoebe                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Scarlet_Tanager                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Scaup_sp.                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Scoter_sp.                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Seal_sp.                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Semipalmated_Plover                    &lt;chr&gt; "0", "0", "0", "0", "0", "X", "…
+$ Semipalmated_Sandpiper                 &lt;chr&gt; "0", "X", "X", "X", "X", "X", "…
+$ Sharp_shinned_Hawk                     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Sharp_tailed_Sandpiper                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Short_billed_Dowitcher                 &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Short_eared_Owl                        &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Short_tailed_Shearwater                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Short_tailed_Weasel                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Shrew_sp.                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Siberian_Accentor                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Siberian_Rubythroat                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Slaty_backed_Gull                      &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Smiths_Longspur                        &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Snipe_sp.                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Snow_Bunting                           &lt;chr&gt; "0", "X", "X", "X", "X", "X", "…
+$ Snow_Goose                             &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Snow.Rosss_Goose                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Snowy_Owl                              &lt;chr&gt; "0", "X", "X", "0", "0", "X", "…
+$ Solitary_Sandpiper                     &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Song_Sparrow                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Sora                                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ South_Polar_Skua                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Sparrow_sp.                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Spectacled_Eider                       &lt;chr&gt; "0", "0", "X", "0", "X", "X", "…
+$ Spotted_Sandpiper                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Spotted_Seal                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Spruce_Grouse                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Stellers_Eider                         &lt;chr&gt; "0", "0", "0", "X", "0", "X", "…
+$ Stilt_Sandpiper                        &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Striped_Skunk                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Surf_Scoter                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Surfbird                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Swainsons_Hawk                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Swainsons_Thrush                       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Swallow_sp.                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Swamp_Sparrow                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Swan_sp.                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Temmincks_Stint                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Tennessee_Warbler                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Thayers_Gull                           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Thick_billed_Murre                     &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Three_toed_Woodpecker                  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Townsends_Solitaire                    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Tree_Swallow                           &lt;dbl&gt; 0, 0, NA, 0, 0, 0, 0, 0, 0, 0, …
+$ Trumpeter_Swan                         &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Tufted_Puffin                          &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Tundra_Swan                            &lt;chr&gt; "0", "X", "0", "0", "X", "0", "…
+$ Tundra_Vole                            &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Varied_Thrush                          &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Vega_Gull                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Vesper_Sparrow                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Violet_green_Swallow                   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Vole_sp.                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Wagtail_sp.                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Walrus                                 &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Wandering_Tattler                      &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Weasel_sp.                             &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Western_Meadowlark                     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Western_Sandpiper                      &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Western_Tanager                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Western.Semipalmated_Sandpiper         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Whale_sp.                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Wheatear                               &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Whimbrel                               &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Whistling_Swan                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ White_Wagtail                          &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ White_crowned_Sparrow                  &lt;dbl&gt; 0, 0, 0, 0, 0, NA, 0, 0, 0, 0, …
+$ White_rumped_Sandpiper                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, NA, 0, 0, …
+$ White_tailed_Sea_Eagle                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ White_throated_Sparrow                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ White_winged_Crossbill                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ White_winged_Scoter                    &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Willow_Ptarmigan                       &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Willow_Warbler                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Wilsons_Phalarope                      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Wilsons_Snipe                          &lt;chr&gt; "0", "0", "0", "X", "0", "X", "…
+$ Wilsons_Warbler                        &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Wolverine                              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Wood_Sandpiper                         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Yellow_Rail                            &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Yellow_Warbler                         &lt;chr&gt; "0", "0", "0", "0", "0", "0", "…
+$ Yellow_billed_Loon                     &lt;chr&gt; "0", "0", "X", "X", "0", "0", "…
+$ Yellow_headed_Blackbird                &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Yellow_rumped_Warbler                  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</code></pre>
+</div>
+</div>
+<p>This data set is stored in a wide format where each species has its own column. This means that every time we discover a new species we will have to add a column. In addition, a bunch of <code>0</code> are stored in this table but do not really provide any information. According to the metadata:</p>
+<pre><code>The number of individuals seen is recorded for each species, except when individuals were not counted but the species was present (typically for very abundant species), an "X" is shown. The remaining columns list the full-name of species (birds and mammals) recorded for at least study site in at least one year.</code></pre>
+<p>This data model is not convenient for a database, we will have to switch to a long format.</p>
+</section>
+<section id="data-cleaning-1" class="level3">
+<h3 class="anchored" data-anchor-id="data-cleaning-1">Data cleaning</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>species_long <span class="ot">&lt;-</span> species_csv <span class="sc">%&gt;%</span> </span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(Jdate, Num_observers, All_obs_reported, Observer_hours)) <span class="sc">%&gt;%</span> </span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">cols =</span> <span class="sc">!</span><span class="fu">c</span>(Year, Site, Date),</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"Species"</span>,</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_to =</span> <span class="st">"Presence"</span>,</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_transform =</span> <span class="fu">list</span>(<span class="at">Presence =</span> as.character))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>species_long <span class="sc">%&gt;%</span> <span class="fu">glimpse</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 1,178,450
+Columns: 5
+$ Year     &lt;dbl&gt; 2003, 2003, 2003, 2003, 2003, 2003, 2003, 2003, 2003, 2003, 2…
+$ Site     &lt;chr&gt; "barr", "barr", "barr", "barr", "barr", "barr", "barr", "barr…
+$ Date     &lt;chr&gt; "1-Jun-03", "1-Jun-03", "1-Jun-03", "1-Jun-03", "1-Jun-03", "…
+$ Species  &lt;chr&gt; "Alder_Flycatcher", "Aleutian_Tern", "American_Bittern", "Ame…
+$ Presence &lt;chr&gt; "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "…</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(species_long<span class="sc">$</span>Presence)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  [1] "0"          "X"          NA           "1"          "2"         
+  [6] "50"         "4"          "500"        "700"        "15"        
+ [11] "8"          "10"         "3"          "7"          "5"         
+ [16] "18"         "16"         "100"        "163"        "20"        
+ [21] "30"         "6"          "230"        "32"         "31"        
+ [26] "12"         "40"         "80"         "28"         "11"        
+ [31] "45"         "300"        "200"        "60"         "63"        
+ [36] "25"         "75"         "140"        "84"         "175"       
+ [41] "35"         "1500"       "85"         "120"        "70"        
+ [46] "210"        "90"         "400"        "36"         "37"        
+ [51] "525"        "26"         "231"        "260"        "19"        
+ [56] "750"        "x"          "14"         "150"        "600"       
+ [61] "1000"       "495"        "202"        "675"        "23"        
+ [66] "52"         "2500"       "17"         "65"         "5000"      
+ [71] "180"        "49"         "550"        "41"         "1200"      
+ [76] "450"        "77"         "2000"       "800"        "9"         
+ [81] "115"        "22"         "250"        "160"        "900"       
+ [86] "3500"       "130"        "181"        "73"         "78"        
+ [91] "135"        "13"         "55"         "56"         "51"        
+ [96] "220"        "275"        "101"        "470"        "34"        
+[101] "590"        "270"        "350"        "170"        "92"        
+[106] "198"        "82"         "235"        "206"        "178"       
+[111] "33"         "21"         "42"         "54"         "94"        
+[116] "57"         "39"         "27"         "113"        "110"       
+[121] "44"         "145"        "47"         "83"         "38"        
+[126] "125"        "72"         "126"        "3000"       "53"        
+[131] "24"         "68"         "88"         "61"         "43"        
+[136] "1400"       "46"         "1250"       "158"        "62"        
+[141] "153"        "10000"      "8000"       "801"        "402"       
+[146] "342"        "280"        "770"        "310"        "190"       
+[151] "95"         "262"        "760"        "103"        "131"       
+[156] "360"        "74"         "71"         "59"         "105"       
+[161] "96"         "89"         "133"        "97"         "48"        
+[166] "467"        "129"        "91"         "107"        "527"       
+[171] "168"        "215"        "185"        "102"        "165"       
+[176] "868"        "29"         "104"        "167"        "141"       
+[181] "58"         "415"        "432"        "142"        "305"       
+[186] "418"        "67"         "313"        "340"        "222"       
+[191] "666"        "444"        "106"        "177"        "407"       
+[196] "271"        "318"        "307"        "337"        "169"       
+[201] "204"        "273"        "319"        "182"        "112"       
+[206] "155"        "549"        "510"        "81"         "1300"      
+[211] "545"        "502"        "6000"       "128"        "4000"      
+[216] "3300"       "10600"      "5e+05"      "208"        "370"       
+[221] "285"        "50000000"   "64"         "76"         "132"       
+[226] "157"        "119"        "114"        "213"        "87"        
+[231] "69"         "219"        "267"        "172"        "151"       
+[236] "224"        "154"        "148"        "144"        "289"       
+[241] "66"         "255"        "323"        "127"        "173"       
+[246] "122"        "93"         "79"         "195"        "183"       
+[251] "212"        "592"        "553"        "498"        "98"        
+[256] "580"        "281"        "471"        "292"        "970"       
+[261] "240"        "214"        "124"        "152"        "118"       
+[266] "123"        "143"        "225"        "99"         "134"       
+[271] "162"        "174"        "229"        "207"        "171"       
+[276] "223"        "258"        "86"         "490"        "117"       
+[281] "111"        "136"        "236"        "194"        "149"       
+[286] "109"        "430"        "187"        "146"        "108"       
+[291] "867"        "352"        "156"        "241"        "205"       
+[296] "815"        "330"        "386"        "425"        "166"       
+[301] "269"        "290"        "248"        "121"        "286"       
+[306] "540"        "341"        "233"        "197"        "192"       
+[311] "322"        "161"        "164"        "238"        "116"       
+[316] "245"        "406"        "237"        "361"        "460"       
+[321] "840"        "375"        "1800"       "227"        "301"       
+[326] "217"        "50000"      "283"        "1005"       "2950"      
+[331] "901"        "1280"       "2250"       "328"        "138"       
+[336] "272"        "325"        "552"        "355"        "397"       
+[341] "440"        "338"        "2572"       "2065"       "1150"      
+[346] "2800"       "1050"       "387"        "420"        "2319"      
+[351] "1100"       "228"        "247"        "193"        "259"       
+[356] "320"        "137"        "850"        "2400"       "1244"      
+[361] "380"        "282"        "4930"       "3647"       "303"       
+[366] "1029"       "1345"       "316"        "1760"       "414"       
+[371] "179"        "184"        "640"        "487"        "535"       
+[376] "315"        "1600"       "139"        "251"        "752"       
+[381] "201"        "277"        "295"        "211"        "351"       
+[386] "1004"       "263"        "358"        "242"        "191"       
+[391] "327"        "279"        "216"        "226"        "234"       
+[396] "412"        "332"        "308"        "462"        "189"       
+[401] "293"        "333"        "278"        "395"        "820"       
+[406] "314"        "499"        "403"        "860"        "620"       
+[411] "832"        "349"        "266"        "385"        "253"       
+[416] "239"        "335"        "343"        "265"        "232"       
+[421] "451"        "1203"       "6700"       "5600"       "9400"      
+[426] "524"        "302"        "249"        "1075"       "1090"      
+[431] "480"        "297"        "682"        "268"        "186"       
+[436] "615"        "261"        "435"        "413"        "287"       
+[441] "298"        "357"        "465"        "484"        "176"       
+[446] "556"        "2200"       "15000"      "379"        "445"       
+[451] "7000"       "9000"       "20000"      "60000"      "11000"     
+[456] "253724321"  "253675367"  "4253465"    "2341234231" ".."        </code></pre>
+</div>
+</div>
+<p>We want to focus on the presence and absence of species and not the count. Let’s create a new column for presence where anything else than 0 is considered present</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>species_presence <span class="ot">&lt;-</span> species_long <span class="sc">%&gt;%</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Presence =</span> <span class="fu">ifelse</span>(Presence <span class="sc">==</span> <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>We can remove some columns: “Num_observers”, “All_obs_reported”, “Observer_hours” are here to help to compute the effort of observation but since we just want presence and absence, we do not need it. We can also remove all the zeros values to reduce the size of our data set:</p>
+<p>Last but not least, let’s have a look at our species list</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>species_presence <span class="sc">%&gt;%</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Presence <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(Species) <span class="sc">%&gt;%</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(n))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 319 × 2
+   Species                    n
+   &lt;chr&gt;                  &lt;int&gt;
+ 1 Parasitic_Jaeger        2687
+ 2 Lapland_Longspur        2565
+ 3 Dunlin                  2560
+ 4 Northern_Pintail        2476
+ 5 Glaucous_Gull           2429
+ 6 Semipalmated_Sandpiper  2403
+ 7 Red_necked_Phalarope    2395
+ 8 Pacific_Loon            2393
+ 9 Long_tailed_Duck        2346
+10 Pectoral_Sandpiper      2080
+# ℹ 309 more rows</code></pre>
+</div>
+</div>
+<p>We have 319 species observed in this table. The “convention” seems to be that <code>_</code> are used to separate the different parts of a name. Note that it is not clear what type of nomenclature reference is used to pull those names from.</p>
+<p>Let’s write the presence table to a csv file:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># check if the folder exists</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(datadir_processed, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="co"># write the file</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(species_presence, <span class="fu">file.path</span>(datadir_processed, <span class="st">"species_presence.csv"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
