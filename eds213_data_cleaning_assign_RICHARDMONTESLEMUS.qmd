@@ -4,8 +4,235 @@ author: "Richard Montes Lemus"
 format: html
 ---
 
-```{r}
-# Read in cleaned csv produced in clas 
+## Load in Data and Setup
 
+```{r}
+#| message: false
+# Load in necessary libraries
+library(here)
+library(tidyverse)
+library(dplyr)
+
+# Create file paths 
+datadir_processed <- file.path("data", "processed/")
+```
+
+```{r}
+#| message: false
+# Read in cleaned csv produced in class 
+snow_cover <- read_csv(here("data", "processed", "snow_cover.csv"))
+```
+
+## Land Cover Numeric Column Transformation
+
+*Filter and manipulate Land_cover column so it can be turned into a numeric column*
+
+```{r}
+# Check the column types 
+glimpse(snow_cover)
+```
+
+```{r}
+# Return non numeric values in Land_cover column 
+snow_cover%>% 
+  count(Land_cover) %>%
+  filter(is.na(as.numeric(Land_cover)))
+```
+
+
+```{r}
+# Check instances with . in Land_cover column
+snow_cover %>% 
+  filter(Land_cover == ".") %>% 
+  View()
+#Notice columns with "." often have "." for other survey cover columns* 
+```
+
+```{r}
+# Replace ., -, n/a, and unk with NA
+landsurvey_fixed <- snow_cover %>% 
+  mutate(Land_cover = ifelse(Land_cover %in% c(".", "-", "n/a", "unk"), NA, Land_cover)) %>% 
+# Replace <1 with 0
+  mutate(Land_cover = ifelse(Land_cover == "<1", 0, Land_cover))
+```
+
+```{r}
+# Check all values in Land_cover for unknown characters
+landsurvey_fixed %>% 
+  count(Land_cover)
+```
+
+```{r}
+# Check non numeric values in Land_cover column
+landsurvey_fixed%>% 
+  count(Land_cover) %>%
+  filter(is.na(as.numeric(Land_cover)))
+# Only non-numeric values returned are NAs indicating successful filtering/manipulation
+```
+
+
+```{r}
+# Turn Land_cover column numeric now that we've removed non-numbers
+landsurvey_fixed <- landsurvey_fixed %>% 
+  mutate(Land_cover = as.numeric(Land_cover))
+```
+
+## Placing Restrains on Land Cover Column
+*Land_cover column must be between 0 and 100, remove rows that don't meet this condition*
+
+```{r}
+# Check for rows greater than 100
+landsurvey_fixed %>% 
+  filter(Land_cover > 100)
+# No rows greater then 100 for the land cover column were found 
+```
+
+```{r}
+# Check for rows less than 0
+landsurvey_fixed %>% 
+  filter(Land_cover < 0)
+# Two negative rows for the land cover column were found 
+```
+
+```{r}
+# Remove negative percentages
+# Land_cover must be between 0 and 100
+landsurvey_fixed <- landsurvey_fixed %>% 
+  mutate(Land_cover = ifelse(Land_cover < 0, NA, Land_cover))
+```
+
+```{r}
+# Ensure negative rows have been removed
+landsurvey_fixed %>% 
+  filter(Land_cover < 0)
+```
+
+## Water Cover Numeric Column Transformation
+
+*Filter and manipulate Water_cover column so it can be turned into a numeric column*
+
+```{r}
+# Check the column types 
+glimpse(landsurvey_fixed)
+```
+
+```{r}
+# Return non numeric values in Water_cover column 
+landsurvey_fixed%>% 
+  count(Water_cover) %>%
+  filter(is.na(as.numeric(Water_cover)))
+```
+
+
+```{r}
+# Check instances with . in Water_cover column
+landsurvey_fixed %>% 
+  filter(Water_cover == ".") %>% 
+  View()
+#Notice columns with "." often have "." for other survey cover columns* 
+```
+
+```{r}
+# Replace ., -, n/a, and unk with NA
+watersurvey_fixed <- landsurvey_fixed %>% 
+  mutate(Water_cover = ifelse(Water_cover %in% c(".", "-", "n/a", "unk"), NA, Water_cover)) %>% 
+# Replace <1 with 0
+  mutate(Water_cover = ifelse(Water_cover == "<1", 0, Water_cover))
+```
+
+```{r}
+# Check all values in Water_cover for unknown characters
+watersurvey_fixed %>% 
+  count(Water_cover)
+```
+
+```{r}
+# Check non numeric values in Water_cover column
+watersurvey_fixed %>% 
+  count(Water_cover) %>%
+  filter(is.na(as.numeric(Water_cover)))
+# Only non-numeric values returned are NAs indicating successful filtering/manipulation
+```
+
+
+```{r}
+# Turn Water_cover column numeric now that we've removed non-numbers
+watersurvey_fixed <- watersurvey_fixed %>% 
+  mutate(Water_cover = as.numeric(Water_cover))
+```
+
+## Placing Restrains on Water Cover Column
+
+*Water_cover column must be between 0 and 100, remove rows that don't meet this condition*
+
+```{r}
+# Check for rows greater than 100
+watersurvey_fixed %>% 
+  filter(Water_cover > 100)
+# One row greater than 100 for the Water_cover column was found 
+```
+
+```{r}
+# Remove row with Water_cover greater than 100
+watersurvey_fixed <- watersurvey_fixed %>% 
+  filter(!(Water_cover > 100))
+```
+
+```{r}
+# Ensure Water_cover values greater than 100 are removed
+watersurvey_fixed %>% 
+  filter(Water_cover < 0)
+```
+
+```{r}
+# Check for rows less than 0
+watersurvey_fixed %>% 
+  filter(Water_cover < 0)
+# No negative rows for the Water_cover column were found
+```
+## Total_cover column Robustness Check
+
+*Use fixed data frame corresponding to the survey cover data frame containing the original Total_cover column after the previous filtering and manipulation steps done on Snow_cover, Land_cover, and Water_cover columns. Return a data frame only containing Total_cover column values equal to 100. If this condition is not met, the row containing it will be removed. Compare this fixed data frame filtered for Total_cover == 100 to a data frame containing a recomputed Total_cover == 100 column derived from summing the Snow_cover, Land_cover, and Water_cover columns*
+
+```{r}
+# Assign fixed df to non-water specific df name
+surveys_cover <- watersurvey_fixed
+```
+
+```{r}
+# Return fixed df containing Total_cover equal to 100
+surveys_cover_fixed <- surveys_cover %>% 
+  filter(Total_cover == 100) %>% 
+    mutate(Total_cover = as.numeric(Total_cover))
+```
+
+
+```{r}
+# Recompute Total_cover column ignoring NAs in cover columns
+surveys_cover_recomp <- surveys_cover %>% 
+  select(-Total_cover) %>% 
+  mutate(Total_cover = rowSums(across(c(Snow_cover, Water_cover, Land_cover)), na.rm = TRUE)) %>% 
+  filter(Total_cover == 100)
+```
+
+
+```{r}
+# Look at the difference between the original Total_cover column and Recomputed
+diff_cover_fixed <- surveys_cover_fixed %>% 
+  anti_join(surveys_cover_recomp)
+
+diff_cover_recomp <- surveys_cover_recomp %>% 
+  anti_join(surveys_cover_fixed)
+```
+## Select DataFrame Containing Accurate Total_cover
+
+*Upon checking the fixed data frame's original Total_cover column and comparing it to the data frame with a recomputed Total_cover column, I realized the recomputed data frame is more accurate. Upon analyzing the table filtered for 100 in the Total_cover column, I realized the sum of all other surveys covers did not add up to the 100 value it contained. The Total_cover column was incorrectly labeled as 100. I noticed this after creating the df "diff_cover_fixed" which contained rows that were labeled as 100 in the fixed data frame and not labeled 100 in the recomputed version. I also noticed the fixed data frame did not assign 100 to the Total_cover column for some rows where Snow_cover was 100. I realized this after creating the df "diff_cover_recomp" which contained rows that were labeled as 100 in the recomputed data frame and not labeled 100 in the fixed version. This comparison caused me to choose the recomputed data frame with a Total_cover column derived from the sum of all other survey cover columns over the fixed data frame with it's mis-labled original Total_cover column*
+
+```{r}
+# Check if the folder exists
+dir.create(datadir_processed, showWarnings = FALSE)
+
+# Write the file
+write_csv(surveys_cover_recomp, file.path(datadir_processed,"all_cover_fixed_RICHARDMONTESLEMUS.csv"))
 ```
 
